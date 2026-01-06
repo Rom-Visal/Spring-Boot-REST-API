@@ -1,0 +1,16 @@
+package com.example.rolebase.mapper;
+
+import com.example.rolebase.config.GlobalMapperConfig;
+import com.example.rolebase.dto.request.RegistrationRequest;
+import com.example.rolebase.dto.response.UserResponse;
+import com.example.rolebase.entity.User;
+import org.mapstruct.Mapper;
+
+@Mapper(config = GlobalMapperConfig.class)
+public interface UserMapper {
+
+    User toEntity(RegistrationRequest request);
+
+    UserResponse toResponse(User response);
+
+}
