@@ -1,13 +1,14 @@
 package com.example.rolebase.dto.request;
 
-import java.util.Set;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.util.Set;
 
 @Data
-@NoArgsConstructor
+@Builder
 public class AdminRegistrationRequest {
 
     @NotBlank(message = "Username cannot be blank")
