@@ -1,12 +1,10 @@
 package com.example.rolebase.util;
 
-import java.time.LocalDateTime;
-import org.springframework.web.context.request.WebRequest;
 import com.example.rolebase.dto.response.ErrorResponse;
+import org.springframework.web.context.request.WebRequest;
 
-import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
-@NoArgsConstructor
 public final class ResponseUtil {
 
     public static ErrorResponse createErrorResponse(

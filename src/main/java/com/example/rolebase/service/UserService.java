@@ -1,11 +1,15 @@
 package com.example.rolebase.service;
 
+import com.example.rolebase.dto.request.AdminRegistrationRequest;
 import com.example.rolebase.dto.request.RegistrationRequest;
 import com.example.rolebase.dto.request.UpdateUserRequest;
 import com.example.rolebase.dto.response.UpdateUserResponse;
 import com.example.rolebase.dto.response.UserResponse;
 import com.example.rolebase.entity.Role;
 import com.example.rolebase.entity.User;
+import com.example.rolebase.mapper.AdminRegistrationMapper;
+import com.example.rolebase.mapper.UpdateUserRequestMapper;
+import com.example.rolebase.mapper.UserMapper;
 import com.example.rolebase.repository.RoleRepository;
 import com.example.rolebase.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -16,7 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
-import java.util.Optional;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -30,86 +34,65 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
 
-    public UserResponse toUserResponse(User user) {
-        Set<String> roleNames = user.getRoles().stream()
-                .map(Role::getName)
-                .collect(Collectors.toSet());
+    private final UserMapper userMapper;
+    private final AdminRegistrationMapper adminMapper;
+    private final UpdateUserRequestMapper updateMapper;
 
-        return UserResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .roles(roleNames)
-                .enabled(user.isEnable())
-                .build();
+    public UserResponse toUserResponse(User user) {
+        return userMapper.toResponse(user);
     }
 
     public User registerUser(RegistrationRequest request) {
         validateUsernameAndEmail(request.getUsername(), request.getEmail());
 
-        User user = createUser(request.getUsername(), request.getPassword(), request.getEmail());
-        Role userRole = roleRepository.findByName("USER")
-                .orElseThrow(() -> new IllegalStateException(
-                        "USER role not found. Please initialize roles first."));
+        User user = userMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        user.getRoles().add(userRole);
-        User savedUser = userRepository.save(user);
-        log.info("User registered: {} with role: USER", savedUser.getUsername());
+        Role defaultRole = roleRepository.findByName("USER")
+                .orElseThrow(() -> new IllegalStateException("USER role not found."));
+        user.getRoles().add(defaultRole);
 
-        return savedUser;
+        return userRepository.save(user);
     }
 
-    public User registerUserWithRole(
-            String username, String password, String email, Set<String> roleNames
-    ) {
+    public User registerUserByAdmin(AdminRegistrationRequest request) {
+        validateUsernameAndEmail(request.getUsername(), request.getEmail());
 
-        validateUsernameAndEmail(username, email);
-        validateRoleNames(roleNames);
+        User user = adminMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        User user = createUser(username, password, email);
-
-        Set<Role> roles = Optional.ofNullable(roleNames)
-                .orElse(Collections.emptySet())
-                .stream()
-                .map(roleName -> roleRepository.findByName(roleName)
-                        .orElseThrow(() -> new IllegalArgumentException("Role not found " + roleName)))
-                .collect(Collectors.toSet());
-
-        if (roles.isEmpty()) {
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+            Set<Role> existingRoles = request.getRoles().stream()
+                    .map(roleName -> roleRepository.findByName(roleName)
+                            .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleName)))
+                    .collect(Collectors.toSet());
+            user.setRoles(existingRoles);
+        } else {
             Role defaultRole = roleRepository.findByName("USER")
                     .orElseThrow(() -> new IllegalStateException("USER role not found"));
-            roles.add(defaultRole);
+            user.setRoles(new HashSet<>(Collections.singletonList(defaultRole)));
         }
-        user.setRoles(roles);
 
-        User savedUser = userRepository.save(user);
-        String rolesStr = savedUser.getRoles().stream()
-                .map(Role::getName)
-                .collect(Collectors.joining(", "));
-
-        log.info("User registered: {} with roles: {}", savedUser.getUsername(), rolesStr);
-
-        return savedUser;
+        return userRepository.save(user);
     }
 
     public UpdateUserResponse updateUser(String currentUsername, UpdateUserRequest updatedDetails) {
         User existingUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        UserResponse beforeUpdate = toUserResponse(existingUser);
+        UserResponse beforeUpdate = userMapper.toResponse(existingUser);
 
-        updateUsername(existingUser, updatedDetails.getUsername());
-        updateEmail(existingUser, updatedDetails.getEmail());
-        updatePassword(existingUser, updatedDetails.getPassword());
+        updateMapper.updateUserFromRequest(updatedDetails, existingUser);
+
+        if (updatedDetails.getPassword() != null && !updatedDetails.getPassword().isBlank()) {
+            existingUser.setPassword(passwordEncoder.encode(updatedDetails.getPassword()));
+        }
 
         User savedUser = userRepository.save(existingUser);
-        log.info("User profile updated: {}", savedUser.getUsername());
-
-        UserResponse afterUpdate = toUserResponse(savedUser);
-
         return UpdateUserResponse.builder()
                 .beforeUpdate(beforeUpdate)
-                .afterUpdate(afterUpdate).build();
+                .afterUpdate(userMapper.toResponse(savedUser))
+                .build();
     }
 
     public void deleteUser(Integer userId) {
@@ -120,60 +103,12 @@ public class UserService {
         log.info("User deleted with ID: {}", userId);
     }
 
-    // Private helper methods
     private void validateUsernameAndEmail(String username, String email) {
         if (userRepository.findByUsername(username).isPresent()) {
             throw new IllegalArgumentException("Username is already taken");
         }
         if (userRepository.findByEmail(email).isPresent()) {
             throw new IllegalArgumentException("Email is already registered");
-        }
-    }
-
-    private void validateRoleNames(Set<String> roleNames) {
-        if (roleNames == null || roleNames.isEmpty()) {
-            return;
-        }
-
-        Set<String> validRoles = Set.of("USER", "ADMIN", "MANAGER");
-        for (String roleName : roleNames) {
-            if (!validRoles.contains(roleName)) {
-                throw new IllegalArgumentException("Invalid role: " + roleName);
-            }
-        }
-    }
-
-    private User createUser(String username, String password, String email) {
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
-        return user;
-    }
-
-    private void updateUsername(User existingUser, String newUsername) {
-        if (newUsername != null && !newUsername.equals(existingUser.getUsername())) {
-            Optional<User> foundUserWithNewUsername = userRepository.findByUsername(newUsername);
-            if (foundUserWithNewUsername.isPresent()) {
-                throw new IllegalArgumentException("Username is already taken");
-            }
-            existingUser.setUsername(newUsername);
-        }
-    }
-
-    private void updateEmail(User existingUser, String newEmail) {
-        if (newEmail != null && !newEmail.equals(existingUser.getEmail())) {
-            Optional<User> userWithNewEmail = userRepository.findByEmail(newEmail);
-            if (userWithNewEmail.isPresent()) {
-                throw new IllegalArgumentException("Email is already registered");
-            }
-            existingUser.setEmail(newEmail);
-        }
-    }
-
-    private void updatePassword(User existingUser, String newPassword) {
-        if (newPassword != null && !newPassword.isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(newPassword));
         }
     }
 }
