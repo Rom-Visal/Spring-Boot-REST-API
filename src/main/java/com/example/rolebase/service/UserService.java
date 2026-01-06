@@ -19,11 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -50,8 +45,8 @@ public class UserService {
 
         Role defaultRole = roleRepository.findByName("USER")
                 .orElseThrow(() -> new IllegalStateException("USER role not found."));
-        user.getRoles().add(defaultRole);
 
+        user.addRole(defaultRole);
         return userRepository.save(user);
     }
 
@@ -62,22 +57,22 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
-            Set<Role> existingRoles = request.getRoles().stream()
-                    .map(roleName -> roleRepository.findByName(roleName)
-                            .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleName)))
-                    .collect(Collectors.toSet());
-            user.setRoles(existingRoles);
+            request.getRoles().forEach(roleName -> {
+                Role role = roleRepository.findByName(roleName)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException("Role not found: " + roleName));
+                user.addRole(role);
+            });
         } else {
             Role defaultRole = roleRepository.findByName("USER")
                     .orElseThrow(() -> new IllegalStateException("USER role not found"));
-            user.setRoles(new HashSet<>(Collections.singletonList(defaultRole)));
+            user.addRole(defaultRole);
         }
-
         return userRepository.save(user);
     }
 
     public UpdateUserResponse updateUser(String currentUsername, UpdateUserRequest updatedDetails) {
-        User existingUser = userRepository.findByUsername(currentUsername)
+        User existingUser = userRepository.findByUsernameWithRolesIgnoreCase(currentUsername)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         UserResponse beforeUpdate = userMapper.toResponse(existingUser);
@@ -104,7 +99,7 @@ public class UserService {
     }
 
     private void validateUsernameAndEmail(String username, String email) {
-        if (userRepository.findByUsername(username).isPresent()) {
+        if (userRepository.findByUsernameIgnoreCase(username).isPresent()) {
             throw new IllegalArgumentException("Username is already taken");
         }
         if (userRepository.findByEmail(email).isPresent()) {

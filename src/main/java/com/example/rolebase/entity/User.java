@@ -1,34 +1,42 @@
 package com.example.rolebase.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
-@EqualsAndHashCode(exclude = "roles")
-@Table(name = "users")
+@Table(name = "users", indexes = @Index(name = "idx_username", columnList = "username"))
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(nullable = false, length = 50)
     private String username;
+
+    @Column(nullable = false, unique = true, length = 50)
     private String email;
+
+    @Column(nullable = false)
     private String password;
+
     private boolean enable = true;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
-    @ToString.Exclude
-    private Set<Role> roles = new HashSet<>();
+    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "user")
+    private Set<UserRole> roles = new HashSet<>();
+
+    public void addRole(Role role) {
+        UserRole userRole = new UserRole();
+        userRole.setUser(this);
+        userRole.setRole(role);
+        this.roles.add(userRole);
+    }
 }
