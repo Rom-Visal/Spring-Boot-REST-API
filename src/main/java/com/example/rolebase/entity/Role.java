@@ -1,18 +1,15 @@
 package com.example.rolebase.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Data
 @Entity
+@Getter
+@Setter
 @NoArgsConstructor
-@EqualsAndHashCode(exclude = "users")
 @Table(name = "roles")
 public class Role {
 
@@ -25,7 +22,6 @@ public class Role {
 
     private String description;
 
-    @ManyToMany(mappedBy = "roles")
-    @ToString.Exclude
-    private Set<User> users = new HashSet<>();
+    @OneToMany(mappedBy = "role", orphanRemoval = true, cascade = CascadeType.ALL)
+    private Set<UserRole> users = new HashSet<>();
 }

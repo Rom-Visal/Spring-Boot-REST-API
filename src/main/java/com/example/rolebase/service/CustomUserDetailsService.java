@@ -23,7 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        User user = userRepository.findByUsernameWithRoles(username)
+        User user = userRepository.findByUsernameWithRolesIgnoreCase(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         log.debug("User found: {}", user.getUsername());
@@ -31,7 +31,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         log.debug("Roles count: {}", user.getRoles().size());
 
         var authorities = user.getRoles().stream()
-                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                                .map(userRole ->
+                                        new SimpleGrantedAuthority(
+                                                "ROLE_" + userRole.getRole().getName()))
                                 .toList();
 
         return builder()
