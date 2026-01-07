@@ -5,10 +5,12 @@ import com.example.rolebase.dto.request.RegistrationRequest;
 import com.example.rolebase.dto.response.UserResponse;
 import com.example.rolebase.entity.User;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(config = GlobalMapperConfig.class)
 public interface UserMapper {
 
+    @Mapping(target = "enabled", constant = "true")
     User toEntity(RegistrationRequest request);
 
     UserResponse toResponse(User response);

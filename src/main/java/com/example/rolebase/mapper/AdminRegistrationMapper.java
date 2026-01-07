@@ -2,7 +2,6 @@ package com.example.rolebase.mapper;
 
 import com.example.rolebase.config.GlobalMapperConfig;
 import com.example.rolebase.dto.request.AdminRegistrationRequest;
-import com.example.rolebase.dto.response.UserResponse;
 import com.example.rolebase.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -11,8 +10,7 @@ import org.mapstruct.Mapping;
 public interface AdminRegistrationMapper {
 
     @Mapping(target = "roles", ignore = true)
+    @Mapping(target = "enabled", constant = "true")
     User toEntity(AdminRegistrationRequest request);
-
-    UserResponse toResponse(User response);
 
 }
