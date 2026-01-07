@@ -28,7 +28,7 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    private boolean enable = true;
+    private boolean enabled = true;
 
     @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL, mappedBy = "user")
     private Set<UserRole> roles = new HashSet<>();
