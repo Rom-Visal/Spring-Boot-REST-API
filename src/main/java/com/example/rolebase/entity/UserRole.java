@@ -38,7 +38,14 @@ public class UserRole {
         this.assignAt = LocalDateTime.now();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
-            this.assignBy = authentication.getName();
+            String currentPrincipalName = authentication.getName();
+
+            if ("anonymousUser".equalsIgnoreCase(currentPrincipalName)) {
+                this.assignBy = "SELF_REGISTERED";
+            } else {
+                this.assignBy = currentPrincipalName;
+            }
+
         } else {
             this.assignBy = "SYSTEM";
         }

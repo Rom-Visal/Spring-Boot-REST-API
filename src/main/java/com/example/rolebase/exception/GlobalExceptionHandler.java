@@ -2,13 +2,14 @@ package com.example.rolebase.exception;
 
 import com.example.rolebase.dto.response.ErrorResponse;
 import com.example.rolebase.util.ResponseUtil;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,75 +27,75 @@ public class GlobalExceptionHandler {
 
     private final Environment environment;
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex, WebRequest request) {
+        return buildErrorResponse(HttpStatus.METHOD_NOT_ALLOWED,
+                "Method Not Allowed", ex, request);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(
             AccessDeniedException ex, WebRequest request) {
-
-        return buildErrorResponse(HttpStatus.FORBIDDEN,
-                "Forbidden",
-                "You do not have permission to access this resource", request, ex);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "Forbidden", ex, request);
     }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(
-            EntityNotFoundException ex, WebRequest request) {
-
-        return buildErrorResponse(HttpStatus.NOT_FOUND,
-                "Not Found", "The requested resource was not found", request, ex);
-    }
-
-    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorResponse> handleHttpMethodNotSupport(
-            HttpRequestMethodNotSupportedException ex, WebRequest request) {
-
-        return buildErrorResponse(
-                HttpStatus.METHOD_NOT_ALLOWED,
-                "Method Not Allowed",
-                "Http method not allowed for this URL",
-                request, ex
-        );
+    @ExceptionHandler({UsernameNotFoundException.class, UserNotFoundException.class})
+    public ResponseEntity<ErrorResponse> handleUsernameNotFoundException(
+            UsernameNotFoundException ex, WebRequest request) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "User Not Found", ex, request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST,
-                "Bad Request", ex.getMessage(), request, ex);
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
+            IllegalArgumentException ex, WebRequest request) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Invalid Argument", ex, request);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(
+            IllegalStateException ex, WebRequest request) {
+        return buildErrorResponse(HttpStatus.CONFLICT, "Invalid State", ex, request);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ErrorResponse> handleDisabledException(
+            DisabledException ex, WebRequest request) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "Account Disabled", ex, request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(
+    public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex, WebRequest request) {
-
-        String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+        String errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(f -> f.getField() + ": " + f.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
         return buildErrorResponse(HttpStatus.BAD_REQUEST,
-                "Validation Error", message, request, ex);
+                "Validation Error", new Exception(errors), request);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, WebRequest request) {
+        log.error("Unexpected error occurred", ex);
         String message = isDevelopmentMode()
                 ? "An unexpected error occurred: " + ex.getMessage()
                 : "An unexpected error occurred. Please try again later";
-
-        log.error("Unexpected error occurred", ex);
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                "Internal Server Error", message, request, null);
+                "Internal Server Error", new Exception(message), request);
     }
 
     private ResponseEntity<ErrorResponse> buildErrorResponse(
-            HttpStatus status, String errorTitle, String message, WebRequest request, Exception ex) {
+            HttpStatus status, String errorTitle, Exception ex, WebRequest request) {
 
-        if (ex != null && status != HttpStatus.INTERNAL_SERVER_ERROR) {
+        if (status != HttpStatus.INTERNAL_SERVER_ERROR) {
             log.warn("{}: {}", errorTitle, ex.getMessage());
         }
 
         ErrorResponse error = ResponseUtil.createErrorResponse(
                 LocalDateTime.now(),
                 errorTitle,
-                message,
+                ex.getMessage(),
                 request);
 
         return ResponseEntity.status(status).body(error);

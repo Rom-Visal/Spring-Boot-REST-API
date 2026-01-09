@@ -1,16 +1,14 @@
 package com.example.rolebase.controller;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import com.example.rolebase.dto.request.RegistrationRequest;
 import com.example.rolebase.dto.response.UserResponse;
 import com.example.rolebase.entity.User;
 import com.example.rolebase.service.UserService;
-
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,7 +19,7 @@ public class AuthController {
 
     @GetMapping("/home")
     public ResponseEntity<String> home() {
-        return ResponseEntity.ok("Welcome to Role-Based API");
+        return ResponseEntity.ok("Welcome to Spring Boot REST APIs");
     }
 
     @PostMapping("/register")
@@ -31,10 +29,5 @@ public class AuthController {
         User newUser = userService.registerUser(request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.toUserResponse(newUser));
-    }
-
-    @GetMapping("/dashboard")
-    public ResponseEntity<String> dashboard() {
-        return ResponseEntity.ok("Dashboard - Authenticated successfully!");
     }
 }
