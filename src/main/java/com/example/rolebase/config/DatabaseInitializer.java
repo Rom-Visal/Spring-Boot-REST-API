@@ -17,7 +17,7 @@ import java.util.Set;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DatabaseInitialzer implements CommandLineRunner {
+public class DatabaseInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;

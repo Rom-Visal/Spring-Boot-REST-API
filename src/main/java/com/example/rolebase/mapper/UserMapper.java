@@ -7,6 +7,8 @@ import com.example.rolebase.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.List;
+
 @Mapper(config = GlobalMapperConfig.class)
 public interface UserMapper {
 
@@ -14,5 +16,7 @@ public interface UserMapper {
     User toEntity(RegistrationRequest request);
 
     UserResponse toResponse(User response);
+
+    List<UserResponse> toResponseList(List<User> users);
 
 }
