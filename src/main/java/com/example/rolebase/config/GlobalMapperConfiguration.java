@@ -9,4 +9,4 @@ import org.mapstruct.ReportingPolicy;
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
         uses = RoleMapperUtils.class)
-public interface GlobalMapperConfig {}
+public interface GlobalMapperConfiguration {}

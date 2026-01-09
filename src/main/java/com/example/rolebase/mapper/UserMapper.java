@@ -1,6 +1,6 @@
 package com.example.rolebase.mapper;
 
-import com.example.rolebase.config.GlobalMapperConfig;
+import com.example.rolebase.config.GlobalMapperConfiguration;
 import com.example.rolebase.dto.request.RegistrationRequest;
 import com.example.rolebase.dto.response.UserResponse;
 import com.example.rolebase.entity.User;
@@ -9,7 +9,7 @@ import org.mapstruct.Mapping;
 
 import java.util.List;
 
-@Mapper(config = GlobalMapperConfig.class)
+@Mapper(config = GlobalMapperConfiguration.class)
 public interface UserMapper {
 
     @Mapping(target = "enabled", constant = "true")
