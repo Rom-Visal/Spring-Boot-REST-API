@@ -122,7 +122,7 @@ public class UserService {
 
     public void deleteUser(Integer userId) {
         if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException("User not found");
+            throw new UserNotFoundException("User not found");
         }
         userRepository.deleteById(userId);
         log.info("User deleted with ID: {}", userId);

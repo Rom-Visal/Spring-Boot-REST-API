@@ -19,7 +19,7 @@ public class RegistrationRequest {
             message = "Username can only contain letters, numbers, underscores and hyphens")
     private String username;
 
-    @Schema(description = "Email", example = "User.gmail.com")
+    @Schema(description = "Email", example = "User@gmail.com")
     @Email(message = "Invalid email format")
     @NotBlank(message = "Email cannot be blank")
     private String email;
